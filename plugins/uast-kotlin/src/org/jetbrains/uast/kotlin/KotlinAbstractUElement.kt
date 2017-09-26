@@ -17,6 +17,7 @@
 package org.jetbrains.uast.kotlin
 
 import com.intellij.psi.PsiElement
+import org.jetbrains.kotlin.asJava.elements.KtLightAbstractAnnotation
 import org.jetbrains.kotlin.asJava.toLightGetter
 import org.jetbrains.kotlin.asJava.toLightSetter
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationUseSiteTarget
@@ -37,9 +38,11 @@ abstract class KotlinAbstractUElement(private val givenParent: UElement?) : UEle
         val psi = psi
         var parent = psi?.parent ?: psi?.containingFile
 
-        if (psi is KtAnnotationEntry) {
+        val annotationEntry = (psi as? KtAnnotationEntry) ?: (psi as? KtLightAbstractAnnotation)?.kotlinOrigin as? KtAnnotationEntry
+        if (annotationEntry != null) {
+            parent = annotationEntry.parent ?: annotationEntry.containingFile
             val parentUnwrapped = KotlinConverter.unwrapElements(parent) ?: return null
-            val target = psi.useSiteTarget?.getAnnotationUseSiteTarget()
+            val target = annotationEntry.useSiteTarget?.getAnnotationUseSiteTarget()
             when (target) {
                 AnnotationUseSiteTarget.PROPERTY_GETTER ->
                     parent = (parentUnwrapped as? KtProperty)?.getter

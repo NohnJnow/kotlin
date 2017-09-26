@@ -1,5 +1,6 @@
 package org.jetbrains.uast.test.kotlin
 
+import com.intellij.psi.PsiAnnotation
 import com.intellij.psi.PsiModifier
 import com.intellij.testFramework.UsefulTestCase
 import org.jetbrains.kotlin.psi.KtBinaryExpression
@@ -24,6 +25,7 @@ class KotlinUastApiTest : AbstractKotlinUastTest() {
             assertEquals(annotation.findAttributeValue("from")?.evaluate(), 10)
             val toAttribute = annotation.findAttributeValue("to")!!
             assertEquals(toAttribute.evaluate(), 0)
+            KtUsefulTestCase.assertInstanceOf(annotation.psi, PsiAnnotation::class.java)
             KtUsefulTestCase.assertInstanceOf(annotation.psi.toUElement(), UAnnotation::class.java)
             KtUsefulTestCase.assertInstanceOf(toAttribute.uastParent, UNamedExpression::class.java)
             KtUsefulTestCase.assertInstanceOf(toAttribute.psi.toUElement()?.uastParent, UNamedExpression::class.java)
