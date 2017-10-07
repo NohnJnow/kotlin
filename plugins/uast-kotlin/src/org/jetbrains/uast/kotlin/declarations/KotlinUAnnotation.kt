@@ -35,29 +35,26 @@ class KotlinUAnnotation(
     override val qualifiedName: String?
         get() = resolvedAnnotation?.fqName?.asString()
 
-    override fun psiParentForConversion(): PsiElement? {
-        return super.psiParentForConversion()?.let {
-            var parent = it
-            val annotationEntry = (psi as? KtAnnotationEntry) ?: (psi as? KtLightAbstractAnnotation)?.kotlinOrigin as? KtAnnotationEntry
-            if (annotationEntry != null) {
-                println("annotationEntry: in ${this.javaClass}")
-                parent = annotationEntry.parent ?: annotationEntry.containingFile
-                val parentUnwrapped = KotlinConverter.unwrapElements(parent) ?: return null
-                val target = annotationEntry.useSiteTarget?.getAnnotationUseSiteTarget()
-                when (target) {
-                    AnnotationUseSiteTarget.PROPERTY_GETTER ->
-                        parent = (parentUnwrapped as? KtProperty)?.getter
-                                 ?: (parentUnwrapped as? KtParameter)?.toLightGetter()
-                                 ?: parent
+    override fun getPsiParentForLazyConversion(): PsiElement? = super.getPsiParentForLazyConversion()?.let {
+        var parent = it
+        val annotationEntry = (psi as? KtAnnotationEntry) ?: (psi as? KtLightAbstractAnnotation)?.kotlinOrigin as? KtAnnotationEntry
+        if (annotationEntry != null) {
+            parent = annotationEntry.parent ?: annotationEntry.containingFile
+            val parentUnwrapped = KotlinConverter.unwrapElements(parent) ?: return null
+            val target = annotationEntry.useSiteTarget?.getAnnotationUseSiteTarget()
+            when (target) {
+                AnnotationUseSiteTarget.PROPERTY_GETTER ->
+                    parent = (parentUnwrapped as? KtProperty)?.getter
+                             ?: (parentUnwrapped as? KtParameter)?.toLightGetter()
+                             ?: parent
 
-                    AnnotationUseSiteTarget.PROPERTY_SETTER ->
-                        parent = (parentUnwrapped as? KtProperty)?.setter
-                                 ?: (parentUnwrapped as? KtParameter)?.toLightSetter()
-                                 ?: parent
-                }
+                AnnotationUseSiteTarget.PROPERTY_SETTER ->
+                    parent = (parentUnwrapped as? KtProperty)?.setter
+                             ?: (parentUnwrapped as? KtParameter)?.toLightSetter()
+                             ?: parent
             }
-            parent
         }
+        parent
     }
 
     override val attributeValues: List<UNamedExpression> by lz {

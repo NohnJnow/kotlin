@@ -17,7 +17,6 @@ package org.jetbrains.uast
 
 import com.intellij.psi.PsiElement
 import org.jetbrains.uast.kotlin.KotlinAbstractUExpression
-import org.jetbrains.uast.kotlin.doConvertParent
 
 open class KotlinUDeclarationsExpression(
         override val psi: PsiElement?,
@@ -25,8 +24,8 @@ open class KotlinUDeclarationsExpression(
         val psiAnchor: PsiElement? = null
 ) : KotlinAbstractUExpression(givenParent), UDeclarationsExpression {
 
-    override val uastParent: UElement?
-        get() = if (psiAnchor != null) doConvertParent(this, psiAnchor.parent) else super.uastParent
+    override fun getPsiParentForLazyConversion(): PsiElement? =
+            psiAnchor?.parent ?: super.getPsiParentForLazyConversion()
 
     constructor(uastParent: UElement?) : this(null, uastParent)
 
