@@ -2,10 +2,16 @@ package org.jetbrains.uast.kotlin
 
 import com.intellij.psi.PsiAnnotation
 import com.intellij.psi.PsiClass
+import com.intellij.psi.PsiElement
+import org.jetbrains.kotlin.asJava.elements.KtLightAbstractAnnotation
 import org.jetbrains.kotlin.asJava.toLightAnnotation
+import org.jetbrains.kotlin.asJava.toLightGetter
+import org.jetbrains.kotlin.asJava.toLightSetter
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationDescriptor
+import org.jetbrains.kotlin.descriptors.annotations.AnnotationUseSiteTarget
 import org.jetbrains.kotlin.psi.KtAnnotationEntry
 import org.jetbrains.kotlin.psi.KtParameter
+import org.jetbrains.kotlin.psi.KtProperty
 import org.jetbrains.kotlin.psi.ValueArgument
 import org.jetbrains.kotlin.resolve.BindingContext
 import org.jetbrains.kotlin.resolve.calls.callUtil.getResolvedCall
@@ -28,6 +34,31 @@ class KotlinUAnnotation(
 
     override val qualifiedName: String?
         get() = resolvedAnnotation?.fqName?.asString()
+
+    override fun psiParentForConversion(): PsiElement? {
+        return super.psiParentForConversion()?.let {
+            var parent = it
+            val annotationEntry = (psi as? KtAnnotationEntry) ?: (psi as? KtLightAbstractAnnotation)?.kotlinOrigin as? KtAnnotationEntry
+            if (annotationEntry != null) {
+                println("annotationEntry: in ${this.javaClass}")
+                parent = annotationEntry.parent ?: annotationEntry.containingFile
+                val parentUnwrapped = KotlinConverter.unwrapElements(parent) ?: return null
+                val target = annotationEntry.useSiteTarget?.getAnnotationUseSiteTarget()
+                when (target) {
+                    AnnotationUseSiteTarget.PROPERTY_GETTER ->
+                        parent = (parentUnwrapped as? KtProperty)?.getter
+                                 ?: (parentUnwrapped as? KtParameter)?.toLightGetter()
+                                 ?: parent
+
+                    AnnotationUseSiteTarget.PROPERTY_SETTER ->
+                        parent = (parentUnwrapped as? KtProperty)?.setter
+                                 ?: (parentUnwrapped as? KtParameter)?.toLightSetter()
+                                 ?: parent
+                }
+            }
+            parent
+        }
+    }
 
     override val attributeValues: List<UNamedExpression> by lz {
         resolvedCall?.valueArguments?.entries?.mapNotNull {

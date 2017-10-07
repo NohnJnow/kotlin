@@ -34,36 +34,14 @@ abstract class KotlinAbstractUElement(private val givenParent: UElement?) : UEle
         givenParent ?: convertParent()
     }
 
+    protected open fun psiParentForConversion(): PsiElement? = psi?.parent ?: psi?.containingFile
+
     protected open fun convertParent(): UElement? {
         val psi = psi
-        var parent = psi?.parent ?: psi?.containingFile
+        var parent = psiParentForConversion()
 
-        val annotationEntry = (psi as? KtAnnotationEntry) ?: (psi as? KtLightAbstractAnnotation)?.kotlinOrigin as? KtAnnotationEntry
-        if (annotationEntry != null) {
-            parent = annotationEntry.parent ?: annotationEntry.containingFile
-            val parentUnwrapped = KotlinConverter.unwrapElements(parent) ?: return null
-            val target = annotationEntry.useSiteTarget?.getAnnotationUseSiteTarget()
-            when (target) {
-                AnnotationUseSiteTarget.PROPERTY_GETTER ->
-                    parent = (parentUnwrapped as? KtProperty)?.getter
-                             ?: (parentUnwrapped as? KtParameter)?.toLightGetter()
-                             ?: parent
-
-                AnnotationUseSiteTarget.PROPERTY_SETTER ->
-                    parent = (parentUnwrapped as? KtProperty)?.setter
-                             ?: (parentUnwrapped as? KtParameter)?.toLightSetter()
-                             ?: parent
-            }
-        }
         if (psi is UastKotlinPsiVariable && parent != null) {
-            parent = parent.parent
-        }
-
-        if (parent is KtStringTemplateEntryWithExpression) {
-            parent = parent.parent
-        }
-        if ((parent is KtStringTemplateExpression && parent.entries.size == 1) ||
-            parent is KtWhenConditionWithExpression) {
+            TODO("UastKotlinPsiVariable: in ${this.javaClass}")
             parent = parent.parent
         }
 
@@ -152,5 +130,21 @@ abstract class KotlinAbstractUExpression(givenParent: UElement?)
             val annotatedExpression = psi?.parent as? KtAnnotatedExpression ?: return emptyList()
             return annotatedExpression.annotationEntries.map { KotlinUAnnotation(it, this) }
         }
+
+    override fun psiParentForConversion(): PsiElement? {
+       return super.psiParentForConversion()?.let { superParent ->
+            var parent = superParent
+            if (parent is KtStringTemplateEntryWithExpression) {
+                println("parent is KtStringTemplateEntryWithExpression1: in ${this.javaClass}")
+                parent = parent.parent
+            }
+            if ((parent is KtStringTemplateExpression && parent.entries.size == 1) ||
+                parent is KtWhenConditionWithExpression) {
+                println("parent is KtStringTemplateEntryWithExpression2: in ${this.javaClass}")
+                parent = parent.parent
+            }
+            parent
+        }
+    }
 }
 
